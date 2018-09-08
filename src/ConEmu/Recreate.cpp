@@ -702,7 +702,8 @@ INT_PTR CRecreateDlg::OnButtonClicked(HWND hDlg, UINT messg, WPARAM wParam, LPAR
 			{
 				pszExpand = lstrdup(ms_RConCurDir.c_str());
 			}
-			else {
+			else
+			{
 				pszExpand = ExpandEnvStr(pszDir);
 			}
 		}
