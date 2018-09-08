@@ -209,21 +209,8 @@ INT_PTR CRecreateDlg::OnInitDialog(HWND hDlg, UINT messg, WPARAM wParam, LPARAM 
 	// TODO: gh-959: enable autocorrection of cbRunAsAdmin by IDC_RESTART_CMD task contents (first line)
 	}
 
-	// "%CD%" was specified as startup dir? In Task parameters for example...
-	CEStr lsStartDir;
-	if (pArgs->pszStartupDir
-		&& (lstrcmpi(pArgs->pszStartupDir, L"%CD%") == 0))
-	{
-		lsStartDir.Set(ms_RConCurDir);
-	}
-	// Suggest default ConEmu working directory otherwise (unless it's a cra_RecreateTab)
-	if (lsStartDir.IsEmpty())
-	{
-		lsStartDir.Set(gpConEmu->WorkDir());
-	}
-
 	// Current directory, startup directory, ConEmu startup directory, and may be startup directory history in the future
-	AddDirectoryList(mpsz_DefDir ? mpsz_DefDir : lsStartDir.ms_Val);
+	AddDirectoryList(mpsz_DefDir ? mpsz_DefDir : gpConEmu->WorkDir());
 	AddDirectoryList(ms_RConCurDir);
 	AddDirectoryList(ms_RConStartDir);
 	AddDirectoryList(gpConEmu->WorkDir());
@@ -231,7 +218,7 @@ INT_PTR CRecreateDlg::OnInitDialog(HWND hDlg, UINT messg, WPARAM wParam, LPARAM 
 	if ((pArgs->aRecreate == cra_RecreateTab) && !ms_RConCurDir.IsEmpty())
 		pszShowDir = ms_RConCurDir;
 	else
-		pszShowDir = mpsz_DefDir ? mpsz_DefDir : lsStartDir.ms_Val;
+		pszShowDir = mpsz_DefDir ? mpsz_DefDir : gpConEmu->WorkDir();
 	SetDlgItemText(hDlg, IDC_STARTUP_DIR, pszShowDir);
 
 	// Split controls
@@ -707,7 +694,18 @@ INT_PTR CRecreateDlg::OnButtonClicked(HWND hDlg, UINT messg, WPARAM wParam, LPAR
 
 		// StartupDir (may be specified as argument)
 		wchar_t* pszDir = GetDlgItemTextPtr(hDlg, IDC_STARTUP_DIR);
-		wchar_t* pszExpand = (pszDir && wcschr(pszDir, L'%')) ? ExpandEnvStr(pszDir) : NULL;
+
+		wchar_t* pszExpand = NULL;
+		if (pszDir && wcschr(pszDir, L'%'))
+		{
+			if (lstrcmpi(pszDir, L"%CD%") == 0)
+			{
+				pszExpand = lstrdup(ms_RConCurDir.c_str());
+			}
+			else {
+				pszExpand = ExpandEnvStr(pszDir);
+			}
+		}
 		LPCWSTR pszDirResult = pszExpand ? pszExpand : pszDir;
 		// Another user? We may fail with access denied. Check only for "current user" account
 		if (!pArgs->pszUserName && pszDirResult && *pszDirResult && !DirectoryExists(pszDirResult))
